@@ -32,12 +32,30 @@ function Categories() {
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const [downloadingTrackId, setDownloadingTrackId] = useState<number | null>(null);
 
+    const fetchTracks = async () => {
+        const { data, error } = await supabase
+            .from('tracks')
+            .select('*')
+            .order('created_at', { ascending: false }); // Show newest first
+
+        if (error) {
+            console.error('Error fetching tracks:', error);
+            alert(`Error fetching tracks: ${error.message}`);
+        } else if (data) {
+            setTracks(data);
+        }
+    };
+
     useEffect(() => {
         // This effect handles cleanup when the component is unmounted.
         const audio = audioRef.current;
         return () => {
             audio?.pause();
         };
+    }, []);
+
+    useEffect(() => {
+        fetchTracks();
     }, []);
 
     const filteredTracks = tracks.filter(track => {
@@ -154,8 +172,7 @@ function Categories() {
                     .getPublicUrl(data.path);
 
                 if (urlData) {
-                    const newTrack: Track = {
-                        id: Date.now(), // A simple way to generate a unique ID
+                    const newTrackForDb = {
                         title: fileToUpload.name.replace(/\.[^/.]+$/, ""), // Use filename as title
                         artist: 'Uploaded Artist', // Placeholder
                         category: 'Uploaded', // Placeholder
@@ -164,8 +181,16 @@ function Categories() {
                         url: urlData.publicUrl, // Use the correct public URL
                     };
 
-                    // Add the new track to the beginning of the list
-                    setTracks(prevTracks => [newTrack, ...prevTracks]);
+                    const { error: insertError } = await supabase
+                        .from('tracks')
+                        .insert([newTrackForDb]);
+
+                    if (insertError) {
+                        throw insertError;
+                    }
+
+                    // Refetch tracks from the database to include the new one
+                    await fetchTracks();
 
                     alert(`File uploaded successfully and added to the list!`);
                 } else {
@@ -181,6 +206,9 @@ function Categories() {
             } else if (error.message.includes('security policy')) {
                 errorMessage +=
                 '\n\nThis is a permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow uploads to the "music-tracks" bucket.';
+            } else if (error.message.includes('violates row-level security policy for table "tracks"')) {
+                errorMessage +=
+                '\n\nThis is a database permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow inserting into the "tracks" table.';
             }
             alert(errorMessage);
         } finally {
