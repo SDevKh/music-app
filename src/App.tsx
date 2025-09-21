@@ -11,11 +11,11 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-2 rounded-lg">
-                <Music className="h-6 w-6 text-white" />
+              <div className=" p-2 rounded-lg">
+                <img src="pics\logo.png" alt="Logo" className="h-20 w-20" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">EdOngs</h1>
+                <h1 className="text-xl font-bold">ADIT</h1>
                 <p className="text-xs text-gray-400">Free Music for Creators</p>
               </div>
             </div>

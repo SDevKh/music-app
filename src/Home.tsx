@@ -175,7 +175,7 @@ function Home() {
           <div className='absolute inset-0 flex flex-col items-center justify-center text-center px-4'>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Your one stop solution for every edit</h2>
             <p className="text-lg md:text-xl text-gray-200 max-w-2xl">Discover high-quality, music tracks for your projects. Perfect for creators, filmmakers, and editors.</p>
-            <button className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-6 rounded-lg mt-60 transition-all duration-200">Explore</button> 
+            <button className="bg-orange-600 hover:bg-purple-600 text-white font-medium py-3 px-6 rounded-lg mt-32 transition-all duration-200">Explore</button> 
           </div>
         </div>
       </div>
@@ -247,7 +247,7 @@ function Home() {
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-blue-500">100%</div>
-            <div className="text-gray-400 text-sm">Free & Legal</div>
+            <div className="text-gray-400 text-sm">Free</div>
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-green-500">24/7</div>
