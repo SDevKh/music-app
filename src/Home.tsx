@@ -1,135 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Download, Play, Pause, Filter, Music, Volume2, Clock, Tag, Heart, Share2 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 interface Track {
   id: number;
   title: string;
-  artist: string;
-  genre: string;
+  artist: string | null;
+  genre: string | null; // Mapped from 'category' in DB
   duration: string;
-  tempo: number;
-  mood: string;
-  license: string;
-  downloadUrl: string;
-  audioUrl: string;
-  artwork: string;
+  tempo: number | null;
+  mood: string | null;
+  license: string | null;
+  audioUrl: string; // Mapped from 'url' in DB
+  artwork: string | null;
   tags: string[];
   downloads: number;
-  likes: number;
+  likes: number | null;
 }
-
-const sampleTracks: Track[] = [
-  {
-    id: 1,
-    title: "Ethereal Dreams",
-    artist: "SoundScape Studio",
-    genre: "Ambient",
-    duration: "3:42",
-    tempo: 85,
-    mood: "Relaxed",
-    license: "Creative Commons",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["chill", "meditation", "background"],
-    downloads: 1247,
-    likes: 89
-  },
-  {
-    id: 2,
-    title: "Urban Pulse",
-    artist: "Beat Collective",
-    genre: "Hip Hop",
-    duration: "2:58",
-    tempo: 128,
-    mood: "Energetic",
-    license: "Royalty Free",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["urban", "modern", "upbeat"],
-    downloads: 2341,
-    likes: 156
-  },
-  {
-    id: 3,
-    title: "Corporate Success",
-    artist: "ProMusic Labs",
-    genre: "Corporate",
-    duration: "4:15",
-    tempo: 110,
-    mood: "Professional",
-    license: "Public Domain",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1631677/pexels-photo-1631677.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["business", "presentation", "motivational"],
-    downloads: 987,
-    likes: 67
-  },
-  {
-    id: 4,
-    title: "Indie Reflection",
-    artist: "Acoustic Sessions",
-    genre: "Indie Folk",
-    duration: "5:23",
-    tempo: 95,
-    mood: "Melancholic",
-    license: "Creative Commons",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1708912/pexels-photo-1708912.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["acoustic", "emotional", "storytelling"],
-    downloads: 1876,
-    likes: 134
-  },
-  {
-    id: 5,
-    title: "Electronic Horizons",
-    artist: "Digital Soundworks",
-    genre: "Electronic",
-    duration: "6:01",
-    tempo: 140,
-    mood: "Futuristic",
-    license: "Royalty Free",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["synth", "tech", "innovation"],
-    downloads: 3421,
-    likes: 278
-  },
-  {
-    id: 6,
-    title: "Cinematic Journey",
-    artist: "Epic Scores",
-    genre: "Cinematic",
-    duration: "4:47",
-    tempo: 75,
-    mood: "Epic",
-    license: "Creative Commons",
-    downloadUrl: "#",
-    audioUrl: "#",
-    artwork: "https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=300&h=300",
-    tags: ["orchestral", "dramatic", "film"],
-    downloads: 2156,
-    likes: 198
-  }
-];
 
 const genres = ["All", "Ambient", "Hip Hop", "Corporate", "Indie Folk", "Electronic", "Cinematic"];
 const moods = ["All", "Relaxed", "Energetic", "Professional", "Melancholic", "Futuristic", "Epic"];
 
 function Home() {
-  const [tracks, setTracks] = useState<Track[]>(sampleTracks);
-  const [filteredTracks, setFilteredTracks] = useState<Track[]>(sampleTracks);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedMood, setSelectedMood] = useState("All");
-  const [currentPlaying, setCurrentPlaying] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const audioRefs = useRef<{ [key: number]: HTMLAudioElement }>({});
   const [downloadingTrackId, setDownloadingTrackId] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingTrackId, setPlayingTrackId] = useState<number | null>(null);
+
+  
 
   useEffect(() => {
     let filtered = tracks;
@@ -153,18 +57,88 @@ function Home() {
     setFilteredTracks(filtered);
   }, [searchTerm, selectedGenre, selectedMood, tracks]);
 
-  const handlePlay = (trackId: number) => {
-    if (currentPlaying === trackId) {
-      setCurrentPlaying(null);
-    } else {
-      setCurrentPlaying(trackId);
-    }
+  const handlePlayPause = (track: Track) => {
+        if (playingTrackId === track.id) {
+            if (isPlaying) {
+                audioRef.current?.pause();
+                setIsPlaying(false);
+            } else {
+                audioRef.current?.play();
+                setIsPlaying(true);
+            }
+        } else {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            const newAudio = new Audio(track.audioUrl);
+            audioRef.current = newAudio;
+            setPlayingTrackId(track.id);
+            setIsPlaying(true);
+            
+            newAudio.play().catch(error => {
+                console.error("Error playing audio:", error);
+                setIsPlaying(false);
+                setPlayingTrackId(null);
+            });
+
+            newAudio.onended = () => {
+                setIsPlaying(false);
+                setPlayingTrackId(null);
+            };
+        }
+    };
+
+  const handleLike = (trackId: number) => {
+    // In a real app, this would update the like count in the database
+    alert(`Liked track ${trackId}! (This is a placeholder)`);
   };
+
+  const fetchTracks = async () => {
+          const { data, error } = await supabase
+              .from('tracks')
+              .select('*')
+              .order('created_at', { ascending: false }); // Show newest first
+  
+          if (error) {
+              console.error('Error fetching tracks:', error);
+              alert(`Error fetching tracks: ${error.message}`);
+          } else if (data) {
+              // Map database fields to our component's Track interface
+              const mappedTracks: Track[] = data.map((dbTrack: any) => ({
+                id: dbTrack.id,
+                title: dbTrack.title,
+                artist: dbTrack.artist,
+                genre: dbTrack.category, // Map 'category' from DB to 'genre'
+                duration: dbTrack.duration,
+                audioUrl: dbTrack.url, // Map 'url' from DB to 'audioUrl'
+                downloads: dbTrack.downloads,
+                // Provide default/placeholder values for fields not in the DB
+                tempo: 120,
+                mood: 'Upbeat',
+                license: 'Royalty Free',
+                artwork: `https://picsum.photos/seed/${dbTrack.id}/300/300`,
+                tags: ['music', 'audio'],
+                likes: 0,
+              }));
+              setTracks(mappedTracks);
+          }
+      };
+      useEffect(() => {
+              // This effect handles cleanup when the component is unmounted.
+              const audio = audioRef.current;
+              return () => {
+                  audio?.pause();
+              };
+          }, []);
+      
+          useEffect(() => {
+              fetchTracks();
+          }, []);
 
   const handleDownload = async (track: Track) => {
         setDownloadingTrackId(track.id);
         try {
-            const response = await fetch(track.url);
+            const response = await fetch(track.audioUrl);
             if (!response.ok) {
                 throw new Error(`Failed to fetch track: ${response.statusText}`);
             }
@@ -294,7 +268,7 @@ function Home() {
               {/* Artwork */}
               <div className="relative overflow-hidden">
                 <img
-                  src={track.artwork}
+                  src={track.artwork || `https://picsum.photos/seed/${track.id}/300/300`}
                   alt={track.title}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -312,10 +286,10 @@ function Home() {
                 {/* Play Button Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <button
-                    onClick={() => handlePlay(track.id)}
+                    onClick={() => handlePlayPause(track)}
                     className="bg-purple-500 hover:bg-purple-600 text-white rounded-full p-3 transform hover:scale-110 transition-all duration-200 shadow-lg"
                   >
-                    {currentPlaying === track.id ? (
+                    {playingTrackId === track.id && isPlaying ? (
                       <Pause className="h-6 w-6" />
                     ) : (
                       <Play className="h-6 w-6 ml-1" />
@@ -350,22 +324,22 @@ function Home() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <Volume2 className="h-4 w-4" />
-                    <span>{track.tempo} BPM</span>
+                    <span>{track.tempo || 'N/A'} BPM</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Tag className="h-4 w-4" />
-                    <span>{track.genre}</span>
+                    <span>{track.genre || 'Misc'}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Music className="h-4 w-4" />
-                    <span>{track.mood}</span>
+                    <span>{track.mood || 'General'}</span>
                   </div>
                 </div>
 
                 {/* Stats */}
                 <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
                   <span>{track.downloads.toLocaleString()} downloads</span>
-                  <span>{track.likes} likes</span>
+                  <span>{track.likes || 0} likes</span>
                 </div>
 
                 {/* Action Buttons */}
