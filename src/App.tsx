@@ -2,6 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { Music } from 'lucide-react';
 import Home from './Home';
 import Categories from './categories';
+import About from './about';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
               <Link to="/" className="text-gray-300 hover:text-white transition-colors">Browse</Link>
               <Link to="/categories" className="text-gray-300 hover:text-white transition-colors">Categories</Link>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Licensing</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">About</a>
+              <Link to="/about" className="text-gray-300 hover:text-white transition-colors">About</Link>
             </nav>
           </div>
         </div>
@@ -33,6 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/about" element={<About />} />
       </Routes>
 
       {/* Footer */}

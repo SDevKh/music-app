@@ -12,13 +12,24 @@ interface Track {
     url: string;
 }
 
-const categories = ['All', 'Cinematic', 'Classical', 'Pop', 'Rock', 'Jazz'];
+const categories = ['All', 'Phonks', 'Culture', 'Cinematic', 'Classical', 'Pop', 'Rock', 'Phunk'];
 const sampleTracks: Track[] = [
-    { id: 1, title: 'Epic Adventure', artist: 'John Doe', category: 'Cinematic', duration: '3:45', downloads: 120, url: '/tracks/epic-adventure.mp3' },
-    { id: 2, title: 'Calm Piano', artist: 'Jane Smith', category: 'Classical', duration: '2:30', downloads: 85, url: '/tracks/calm-piano.mp3' },
-    { id: 3, title: 'Upbeat Pop', artist: 'The Beats', category: 'Pop', duration: '4:00', downloads: 200, url: '/tracks/upbeat-pop.mp3' },
-    { id: 4, title: 'Rock Anthem', artist: 'Rockers', category: 'Rock', duration: '3:15', downloads: 150, url: '/tracks/rock-anthem.mp3' },
-    { id: 5, title: 'Jazz Vibes', artist: 'Smooth Jazz Band', category: 'Jazz', duration: '5:20', downloads: 95, url: '/tracks/jazz-vibes.mp3' },
+    // Phonks category
+    { id: 1, title: 'Dark Memphis', artist: 'PhonkMaster', category: 'Phonks', duration: '2:45', downloads: 320, url: '/tracks/dark-memphis.mp3' },
+    { id: 2, title: 'Drift Phonk', artist: 'NightRider', category: 'Phonks', duration: '3:12', downloads: 285, url: '/tracks/drift-phonk.mp3' },
+    { id: 3, title: 'Cowbell Anthem', artist: 'BassBoosted', category: 'Phonks', duration: '2:58', downloads: 410, url: '/tracks/cowbell-anthem.mp3' },
+    
+    // Culture category
+    { id: 4, title: 'African Drums', artist: 'Cultural Collective', category: 'Culture', duration: '4:23', downloads: 156, url: '/tracks/african-drums.mp3' },
+    { id: 5, title: 'Indian Sitar', artist: 'Eastern Vibes', category: 'Culture', duration: '5:45', downloads: 198, url: '/tracks/indian-sitar.mp3' },
+    { id: 6, title: 'Celtic Folk', artist: 'Irish Winds', category: 'Culture', duration: '3:34', downloads: 143, url: '/tracks/celtic-folk.mp3' },
+    
+    // Other categories
+    { id: 7, title: 'Epic Adventure', artist: 'John Doe', category: 'Cinematic', duration: '3:45', downloads: 120, url: '/tracks/epic-adventure.mp3' },
+    { id: 8, title: 'Calm Piano', artist: 'Jane Smith', category: 'Classical', duration: '2:30', downloads: 85, url: '/tracks/calm-piano.mp3' },
+    { id: 9, title: 'Upbeat Pop', artist: 'The Beats', category: 'Pop', duration: '4:00', downloads: 200, url: '/tracks/upbeat-pop.mp3' },
+    { id: 10, title: 'Rock Anthem', artist: 'Rockers', category: 'Rock', duration: '3:15', downloads: 150, url: '/tracks/rock-anthem.mp3' },
+    { id: 11, title: 'Jazz Vibes', artist: 'Smooth Jazz Band', category: 'Jazz', duration: '5:20', downloads: 95, url: '/tracks/jazz-vibes.mp3' },
 ];
 
 function Categories() {    
@@ -33,21 +44,30 @@ function Categories() {
     const [downloadingTrackId, setDownloadingTrackId] = useState<number | null>(null);
 
     const fetchTracks = async () => {
-        const { data, error } = await supabase
-            .from('tracks')
-            .select('*')
-            .order('created_at', { ascending: false }); // Show newest first
+        try {
+            const { data, error } = await supabase
+                .from('tracks')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('Error fetching tracks:', error);
-            alert(`Error fetching tracks: ${error.message}`);
-        } else if (data) {
-            setTracks(data);
+            if (error) {
+                console.error('Error fetching tracks:', error);
+                // Keep sample tracks if database fetch fails
+                setTracks(sampleTracks);
+            } else if (data && data.length > 0) {
+                setTracks(data);
+            } else {
+                // Use sample tracks if no data in database
+                setTracks(sampleTracks);
+            }
+        } catch (error) {
+            console.error('Error connecting to database:', error);
+            // Fallback to sample tracks
+            setTracks(sampleTracks);
         }
     };
 
     useEffect(() => {
-        // This effect handles cleanup when the component is unmounted.
         const audio = audioRef.current;
         return () => {
             audio?.pause();
@@ -57,7 +77,6 @@ function Categories() {
     useEffect(() => {
         fetchTracks();
     }, []);
-
     const filteredTracks = tracks.filter(track => {
         const matchesCategory = selectedCategory === 'All' || track.category === selectedCategory;
         const matchesSearch = track.title.toLowerCase().includes(searchTerm.toLowerCase()) || track.artist.toLowerCase().includes(searchTerm.toLowerCase());
@@ -155,7 +174,7 @@ function Categories() {
             setUploading(true);
             const fileName = `${Date.now()}-${fileToUpload.name}`;
             const { data, error } = await supabase.storage
-                .from('music-tracks') // The bucket you created
+                .from('music-tracks')
                 .upload(fileName, fileToUpload, {
                     cacheControl: '3600',
                     upsert: false,
@@ -173,12 +192,12 @@ function Categories() {
 
                 if (urlData) {
                     const newTrackForDb = {
-                        title: fileToUpload.name.replace(/\.[^/.]+$/, ""), // Use filename as title
-                        artist: 'Uploaded Artist', // Placeholder
-                        category: 'Uploaded', // Placeholder
-                        duration: '?:??', // Placeholder, would need a library to read metadata
+                        title: fileToUpload.name.replace(/\.[^/.]+$/, ""),
+                        artist: 'Uploaded Artist',
+                        category: 'Uploaded',
+                        duration: '?:??',
                         downloads: 0,
-                        url: urlData.publicUrl, // Use the correct public URL
+                        url: urlData.publicUrl,
                     };
 
                     const { error: insertError } = await supabase
@@ -201,14 +220,11 @@ function Categories() {
         } catch (error: any) {
             let errorMessage = `Error uploading file: ${error.message}`;
             if (error.message === 'Bucket not found') {
-                errorMessage +=
-                '\n\nPlease make sure you have created a bucket named "music-tracks" in your Supabase project and set it to public.';
+                errorMessage += '\n\nPlease make sure you have created a bucket named "music-tracks" in your Supabase project and set it to public.';
             } else if (error.message.includes('security policy')) {
-                errorMessage +=
-                '\n\nThis is a permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow uploads to the "music-tracks" bucket.';
+                errorMessage += '\n\nThis is a permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow uploads to the "music-tracks" bucket.';
             } else if (error.message.includes('violates row-level security policy for table "tracks"')) {
-                errorMessage +=
-                '\n\nThis is a database permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow inserting into the "tracks" table.';
+                errorMessage += '\n\nThis is a database permissions error. Please check that you have a Row Level Security (RLS) policy in place to allow inserting into the "tracks" table.';
             }
             alert(errorMessage);
         } finally {
@@ -285,42 +301,77 @@ function Categories() {
             </button>
         </div>
       </div>
-        {/* Track List */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTracks.map(track => (
-                    <div key={track.id} className="bg-gray-800 rounded-lg p-4 flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold mb-1">{track.title}</h3>
-                            <p className="text-sm text-gray-400 mb-2">by {track.artist}</p>
-                            <p className="text-sm text-gray-400 mb-2">Category: {track.category}</p>
-                            <p className="text-sm text-gray-400 mb-2">Duration: {track.duration}</p>
-                            <p className="text-sm text-gray-400 mb-2">Downloads: {track.downloads}</p>
-                        </div>  
-                        <div className="mt-4 flex items-center justify-between">
-                            <button
-                                onClick={() => handlePlayPause(track)}
-                                className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                            >
-                                {playingTrackId === track.id && isPlaying ? <Pause /> : <Play />}
-                                <span>Play</span>
-                            </button>
-                            <button
-                                onClick={() => handleDownload(track)}
-                                disabled={downloadingTrackId === track.id}
-                                className="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                            >
-                                {downloadingTrackId === track.id ? (
-                                    <span>Downloading...</span>
-                                ) : (
-                                    <><Download /><span>Download</span></>
-                                )}
-                            </button>
+        {/* Category Sections */}
+        <div className="border-b border-gray-700 mt-6"></div>
+        
+        {/* Show categories as clickable sections */}
+        {categories.filter(cat => cat !== 'All').map(category => {
+            const categoryTracks = filteredTracks.filter(track => track.category === category);
+            
+            if (categoryTracks.length === 0) return null;
+            
+            return (
+                <div key={category} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-10">
+                    <div className="mb-6">
+                        <button 
+                            onClick={() => setSelectedCategory(category)}
+                            className={`text-xl font-bold hover:text-purple-400 transition-colors ${
+                                selectedCategory === category ? 'text-purple-400' : 'text-white'
+                            }`}
+                        >
+                            {category}
+                        </button>
+                        <div className="text-gray-400 text-sm mt-1">
+                            {categoryTracks.length} track{categoryTracks.length !== 1 ? 's' : ''} available
                         </div>
                     </div>
-                ))}
+                    
+                    {/* Show tracks only if this category is selected or if 'All' is selected */}
+                    {(selectedCategory === category || selectedCategory === 'All') && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {categoryTracks.map(track => (
+                                <div key={track.id} className="bg-gray-800 rounded-lg p-4 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-bold mb-1">{track.title}</h3>
+                                        <p className="text-sm text-gray-400 mb-2">by {track.artist}</p>
+                                        <p className="text-sm text-gray-400 mb-2">Category: {track.category}</p>
+                                        <p className="text-sm text-gray-400 mb-2">Duration: {track.duration}</p>
+                                        <p className="text-sm text-gray-400 mb-2">Downloads: {track.downloads}</p>
+                                    </div>  
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <button
+                                            onClick={() => handlePlayPause(track)}
+                                            className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                                        >
+                                            {playingTrackId === track.id && isPlaying ? <Pause /> : <Play />}
+                                            <span>Play</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownload(track)}
+                                            disabled={downloadingTrackId === track.id}
+                                            className="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                                        >
+                                            {downloadingTrackId === track.id ? (
+                                                <span>Downloading...</span>
+                                            ) : (
+                                                <><Download /><span>Download</span></>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        })}
+        
+        {/* Show message if no tracks found */}
+        {filteredTracks.length === 0 && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-10 text-center">
+                <p className="text-gray-400">No tracks found matching your search criteria.</p>
             </div>
-        </div>
+        )}
     </div>
     );
 }
