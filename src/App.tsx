@@ -3,6 +3,7 @@ import { Music } from 'lucide-react';
 import Home from './Home';
 import Categories from './categories';
 import About from './about';
+import Blog from './blog';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
             <nav className="hidden md:flex items-center space-x-8">
               <Link to="/" className="text-gray-300 hover:text-white transition-colors">Browse</Link>
               <Link to="/categories" className="text-gray-300 hover:text-white transition-colors">Categories</Link>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Licensing</a>
+              <Link to="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link>
               <Link to="/about" className="text-gray-300 hover:text-white transition-colors">About</Link>
             </nav>
           </div>
@@ -35,6 +36,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/about" element={<About />} />
+        <Route path="/blog" element={<Blog />} />
       </Routes>
 
       {/* Footer */}
@@ -44,9 +46,9 @@ function App() {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-2 rounded-lg">
-                  <Music className="h-5 w-5 text-white" />
+                  <img src="pics\logo.png" alt="Logo"className="rounded-full h-12 w-12" />
                 </div>
-                <span className="font-bold">SoundLibrary</span>
+                <span className="font-bold">Adit</span>
               </div>
               <p className="text-gray-400 text-sm">
                 Free, high-quality music for content creators, filmmakers, and editors.

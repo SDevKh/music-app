@@ -46,7 +46,7 @@ const About: React.FC = () => {
                 src="pics/istockphoto-1471448614-1024x1024.jpg"
                 alt="Team member"
               />
-              <h3 className="mt-6 text-xl font-medium">John Doe</h3>
+              <h3 className="mt-6 text-xl font-medium">Dev Khandelwal</h3>
               <p className="text-gray-400">Founder & CEO</p>
             </div>
             <div className="text-center">
